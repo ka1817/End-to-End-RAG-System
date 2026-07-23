@@ -2,23 +2,57 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>10th Class Social Science RAG Chatbot</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>10th Social Science RAG Assistant</title>
     <link rel="stylesheet" href="/static/style.css">
+    <!-- Include Marked.js for clean Markdown text rendering -->
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
 </head>
 <body>
 
     <div class="chat-container">
         <!-- Header -->
         <div class="chat-header">
-            <h2>📚 Textbook Assistant</h2>
-            <span class="status-badge">Online • RAG Active</span>
+            <div class="header-info">
+                <h2>📚 Social Textbook AI</h2>
+                <p>Your interactive 10th Class study companion</p>
+            </div>
+            <div class="header-actions">
+                <button class="clear-btn" id="clearBtn" title="Clear Chat" onclick="clearChat()">
+                    <svg viewBox="0 0 24 24" width="16" height="16" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
+                </button>
+                <div class="status-badge">
+                    <span class="pulse-dot"></span> Online
+                </div>
+            </div>
         </div>
 
         <!-- Chat History -->
         <div class="chat-box" id="chatBox">
-            <div class="message assistant">
-                Ask me any question from your 10th Class Social Science textbook.
+            <!-- Welcome Hero Banner inside Chat Box -->
+            <div class="welcome-banner" id="welcomeBanner">
+                <div class="welcome-icon">🎓</div>
+                <h3>Welcome to your Study Assistant!</h3>
+                <p>Ask any concept, question, or term from your 10th Social Science textbook. Choose a quick starting topic below or type your own question.</p>
+                
+                <div class="topic-grid">
+                    <button class="topic-card" type="button" onclick="sendPreset('Can you summarize the chapter on Resources and Development?')">
+                        <span class="card-icon">⚡</span>
+                        <span>Resources & Development</span>
+                    </button>
+                    <button class="topic-card" type="button" onclick="sendPreset('Explain the key events of the Indian National Movement.')">
+                        <span class="card-icon">🇮🇳</span>
+                        <span>National Movement</span>
+                    </button>
+                    <button class="topic-card" type="button" onclick="sendPreset('What are the primary sectors of the Indian economy?')">
+                        <span class="card-icon">📊</span>
+                        <span>Economy & Sectors</span>
+                    </button>
+                    <button class="topic-card" type="button" onclick="sendPreset('Explain the features of federalism in India.')">
+                        <span class="card-icon">⚖️</span>
+                        <span>Democratic Politics</span>
+                    </button>
+                </div>
             </div>
         </div>
 
@@ -27,11 +61,13 @@
             <input 
                 type="text" 
                 id="userInput" 
-                placeholder="Ask a question (e.g., What is the length of the Himalayan range?)..." 
+                placeholder="Ask a question or type a concept..." 
                 autocomplete="off" 
                 required
             />
-            <button type="submit" id="sendBtn">Send</button>
+            <button type="submit" id="sendBtn" title="Send message">
+                <svg viewBox="0 0 24 24" width="20" height="20" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"><line x1="22" y1="2" x2="11" y2="13"></line><polygon points="22 2 15 22 11 13 2 9 22 2"></polygon></svg>
+            </button>
         </form>
     </div>
 
@@ -40,27 +76,54 @@
         const userInput = document.getElementById('userInput');
         const chatBox = document.getElementById('chatBox');
         const sendBtn = document.getElementById('sendBtn');
+        const welcomeBanner = document.getElementById('welcomeBanner');
 
-        // Append message bubble
         function appendMessage(sender, text) {
+            // Hide welcome banner once chatting begins
+            if (welcomeBanner) {
+                welcomeBanner.style.display = 'none';
+            }
+
             const msgDiv = document.createElement('div');
             msgDiv.classList.add('message', sender);
-            msgDiv.textContent = text;
+            
+            const contentDiv = document.createElement('div');
+            contentDiv.classList.add('message-content');
+            
+            if (sender === 'assistant') {
+                // Safely parse Markdown with fallback to plain text if marked is unavailable
+                try {
+                    if (typeof marked !== 'undefined' && typeof marked.parse === 'function') {
+                        contentDiv.innerHTML = marked.parse(text);
+                    } else {
+                        contentDiv.textContent = text;
+                    }
+                } catch (e) {
+                    contentDiv.textContent = text;
+                }
+            } else {
+                contentDiv.textContent = text;
+            }
+            
+            msgDiv.appendChild(contentDiv);
             chatBox.appendChild(msgDiv);
             chatBox.scrollTop = chatBox.scrollHeight;
             return msgDiv;
         }
 
-        // Show typing indicator
         function showTypingIndicator() {
+            if (welcomeBanner) welcomeBanner.style.display = 'none';
+            
             const indicatorDiv = document.createElement('div');
             indicatorDiv.classList.add('message', 'assistant');
             indicatorDiv.id = 'typingIndicator';
             indicatorDiv.innerHTML = `
-                <div class="typing-indicator">
-                    <div class="typing-dot"></div>
-                    <div class="typing-dot"></div>
-                    <div class="typing-dot"></div>
+                <div class="message-content">
+                    <div class="typing-indicator">
+                        <div class="typing-dot"></div>
+                        <div class="typing-dot"></div>
+                        <div class="typing-dot"></div>
+                    </div>
                 </div>
             `;
             chatBox.appendChild(indicatorDiv);
@@ -72,28 +135,20 @@
             if (indicator) indicator.remove();
         }
 
-        // Submit Form Handler
-        chatForm.addEventListener('submit', async (e) => {
-            e.preventDefault();
-            const question = userInput.value.trim();
-            if (!question) return;
+        async function handleQuery(question) {
+            if (!question.trim()) return;
 
-            // 1. Display User Message
             appendMessage('user', question);
             userInput.value = '';
             
-            // 2. Disable Controls & Show Loading
             userInput.disabled = true;
             sendBtn.disabled = true;
             showTypingIndicator();
 
             try {
-                // 3. Send POST Request to FastAPI backend
                 const response = await fetch('/query', {
                     method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                    },
+                    headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ question: question }),
                 });
 
@@ -101,21 +156,37 @@
 
                 if (!response.ok) {
                     const errorData = await response.json();
-                    appendMessage('assistant', `Error: ${errorData.detail || 'Something went wrong.'}`);
+                    appendMessage('assistant', `⚠️ Error: ${errorData.detail || 'Something went wrong.'}`);
                 } else {
                     const data = await response.json();
-                    // 4. Display Assistant Response
                     appendMessage('assistant', data.answer);
                 }
             } catch (error) {
                 removeTypingIndicator();
-                appendMessage('assistant', "Network Error: Unable to reach the server.");
+                appendMessage('assistant', "⚠️ Network Error: Unable to reach the server.");
             } finally {
-                // 5. Re-enable Controls
                 userInput.disabled = false;
                 sendBtn.disabled = false;
                 userInput.focus();
             }
+        }
+
+        function sendPreset(question) {
+            handleQuery(question);
+        }
+
+        function clearChat() {
+            const messages = chatBox.querySelectorAll('.message');
+            messages.forEach(msg => msg.remove());
+            if (welcomeBanner) {
+                welcomeBanner.style.display = 'block';
+            }
+            userInput.focus();
+        }
+
+        chatForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            await handleQuery(userInput.value);
         });
     </script>
 </body>
