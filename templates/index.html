@@ -1,0 +1,122 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>10th Social Science RAG Chatbot</title>
+    <link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+
+    <div class="chat-container">
+        <!-- Header -->
+        <div class="chat-header">
+            <h2>📚 Textbook Assistant</h2>
+            <span class="status-badge">Online • RAG Active</span>
+        </div>
+
+        <!-- Chat History -->
+        <div class="chat-box" id="chatBox">
+            <div class="message assistant">
+                Hello! Ask me any question from your 10th Class Social Science textbook.
+            </div>
+        </div>
+
+        <!-- User Input Area -->
+        <form class="input-container" id="chatForm">
+            <input 
+                type="text" 
+                id="userInput" 
+                placeholder="Ask a question (e.g., What is the length of the Himalayan range?)..." 
+                autocomplete="off" 
+                required
+            />
+            <button type="submit" id="sendBtn">Send</button>
+        </form>
+    </div>
+
+    <script>
+        const chatForm = document.getElementById('chatForm');
+        const userInput = document.getElementById('userInput');
+        const chatBox = document.getElementById('chatBox');
+        const sendBtn = document.getElementById('sendBtn');
+
+        // Append message bubble
+        function appendMessage(sender, text) {
+            const msgDiv = document.createElement('div');
+            msgDiv.classList.add('message', sender);
+            msgDiv.textContent = text;
+            chatBox.appendChild(msgDiv);
+            chatBox.scrollTop = chatBox.scrollHeight;
+            return msgDiv;
+        }
+
+        // Show typing indicator
+        function showTypingIndicator() {
+            const indicatorDiv = document.createElement('div');
+            indicatorDiv.classList.add('message', 'assistant');
+            indicatorDiv.id = 'typingIndicator';
+            indicatorDiv.innerHTML = `
+                <div class="typing-indicator">
+                    <div class="typing-dot"></div>
+                    <div class="typing-dot"></div>
+                    <div class="typing-dot"></div>
+                </div>
+            `;
+            chatBox.appendChild(indicatorDiv);
+            chatBox.scrollTop = chatBox.scrollHeight;
+        }
+
+        function removeTypingIndicator() {
+            const indicator = document.getElementById('typingIndicator');
+            if (indicator) indicator.remove();
+        }
+
+        // Submit Form Handler
+        chatForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const question = userInput.value.trim();
+            if (!question) return;
+
+            // 1. Display User Message
+            appendMessage('user', question);
+            userInput.value = '';
+            
+            // 2. Disable Controls & Show Loading
+            userInput.disabled = true;
+            sendBtn.disabled = true;
+            showTypingIndicator();
+
+            try {
+                // 3. Send POST Request to FastAPI backend
+                const response = await fetch('/query', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ question: question }),
+                });
+
+                removeTypingIndicator();
+
+                if (!response.ok) {
+                    const errorData = await response.json();
+                    appendMessage('assistant', `Error: ${errorData.detail || 'Something went wrong.'}`);
+                } else {
+                    const data = await response.json();
+                    // 4. Display Assistant Response
+                    appendMessage('assistant', data.answer);
+                }
+            } catch (error) {
+                removeTypingIndicator();
+                appendMessage('assistant', "Network Error: Unable to reach the server.");
+            } finally {
+                // 5. Re-enable Controls
+                userInput.disabled = false;
+                sendBtn.disabled = false;
+                userInput.focus();
+            }
+        });
+    </script>
+</body>
+</html>

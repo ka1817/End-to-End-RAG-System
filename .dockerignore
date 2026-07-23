@@ -1,0 +1,15 @@
+# Ignore virtual environments
+venv/
+
+# Ignore Python cache files
+__pycache__/
+*.pyc
+
+# Ignore Jupyter Notebooks
+*.ipynb
+.ipynb_checkpoints/
+
+.env
+
+# Ignore Git files
+.git/
