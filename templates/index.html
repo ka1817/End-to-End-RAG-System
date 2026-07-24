@@ -1,192 +1,108 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
+    <!-- Prevent auto-zooming on mobile devices -->
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>10th Social Science RAG Assistant</title>
+    <title>10th Social Textbook Assistant</title>
     <link rel="stylesheet" href="/static/style.css">
-    <!-- Include Marked.js for clean Markdown text rendering -->
-    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
 </head>
 <body>
-
     <div class="chat-container">
-        <!-- Header -->
-        <div class="chat-header">
-            <div class="header-info">
-                <h2>📚 Social Textbook AI</h2>
-                <p>Your interactive 10th Class study companion</p>
+        <header class="chat-header">
+            <div class="header-title">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19.5v-15A2.5 2.5 0 0 1 6.5 2H20v20H6.5a2.5 2.5 0 0 1 0-5H20"/></svg>
+                <h1>Social Studies Assistant</h1>
             </div>
-            <div class="header-actions">
-                <button class="clear-btn" id="clearBtn" title="Clear Chat" onclick="clearChat()">
-                    <svg viewBox="0 0 24 24" width="16" height="16" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
+            <p>Ask any question from the 10th-grade textbook</p>
+        </header>
+
+        <main class="chat-box" id="chat-box">
+            <!-- Initial welcome message -->
+            <div class="message bot">
+                <div class="message-content">
+                    Hello! I'm your study assistant. What topic from the 10th-grade Social textbook can I help you with today?
+                </div>
+            </div>
+        </main>
+
+        <div class="loading-indicator" id="loading">
+            <div class="dot"></div>
+            <div class="dot"></div>
+            <div class="dot"></div>
+        </div>
+
+        <footer class="input-area">
+            <form id="query-form">
+                <input type="text" id="question-input" placeholder="Type your question..." autocomplete="off" required>
+                <button type="submit" id="send-btn">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="22" y1="2" x2="11" y2="13"></line><polygon points="22 2 15 22 11 13 2 9 22 2"></polygon></svg>
                 </button>
-                <div class="status-badge">
-                    <span class="pulse-dot"></span> Online
-                </div>
-            </div>
-        </div>
-
-        <!-- Chat History -->
-        <div class="chat-box" id="chatBox">
-            <!-- Welcome Hero Banner inside Chat Box -->
-            <div class="welcome-banner" id="welcomeBanner">
-                <div class="welcome-icon">🎓</div>
-                <h3>Welcome to your Study Assistant!</h3>
-                <p>Ask any concept, question, or term from your 10th Social Science textbook. Choose a quick starting topic below or type your own question.</p>
-                
-                <div class="topic-grid">
-                    <button class="topic-card" type="button" onclick="sendPreset('Can you summarize the chapter on Resources and Development?')">
-                        <span class="card-icon">⚡</span>
-                        <span>Resources & Development</span>
-                    </button>
-                    <button class="topic-card" type="button" onclick="sendPreset('Explain the key events of the Indian National Movement.')">
-                        <span class="card-icon">🇮🇳</span>
-                        <span>National Movement</span>
-                    </button>
-                    <button class="topic-card" type="button" onclick="sendPreset('What are the primary sectors of the Indian economy?')">
-                        <span class="card-icon">📊</span>
-                        <span>Economy & Sectors</span>
-                    </button>
-                    <button class="topic-card" type="button" onclick="sendPreset('Explain the features of federalism in India.')">
-                        <span class="card-icon">⚖️</span>
-                        <span>Democratic Politics</span>
-                    </button>
-                </div>
-            </div>
-        </div>
-
-        <!-- User Input Area -->
-        <form class="input-container" id="chatForm">
-            <input 
-                type="text" 
-                id="userInput" 
-                placeholder="Ask a question or type a concept..." 
-                autocomplete="off" 
-                required
-            />
-            <button type="submit" id="sendBtn" title="Send message">
-                <svg viewBox="0 0 24 24" width="20" height="20" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"><line x1="22" y1="2" x2="11" y2="13"></line><polygon points="22 2 15 22 11 13 2 9 22 2"></polygon></svg>
-            </button>
-        </form>
+            </form>
+        </footer>
     </div>
 
     <script>
-        const chatForm = document.getElementById('chatForm');
-        const userInput = document.getElementById('userInput');
-        const chatBox = document.getElementById('chatBox');
-        const sendBtn = document.getElementById('sendBtn');
-        const welcomeBanner = document.getElementById('welcomeBanner');
+        const chatBox = document.getElementById('chat-box');
+        const queryForm = document.getElementById('query-form');
+        const questionInput = document.getElementById('question-input');
+        const loadingIndicator = document.getElementById('loading');
+        const sendBtn = document.getElementById('send-btn');
 
         function appendMessage(sender, text) {
-            // Hide welcome banner once chatting begins
-            if (welcomeBanner) {
-                welcomeBanner.style.display = 'none';
-            }
-
-            const msgDiv = document.createElement('div');
-            msgDiv.classList.add('message', sender);
+            const messageDiv = document.createElement('div');
+            messageDiv.classList.add('message', sender);
             
             const contentDiv = document.createElement('div');
             contentDiv.classList.add('message-content');
+            contentDiv.textContent = text; 
             
-            if (sender === 'assistant') {
-                // Safely parse Markdown with fallback to plain text if marked is unavailable
-                try {
-                    if (typeof marked !== 'undefined' && typeof marked.parse === 'function') {
-                        contentDiv.innerHTML = marked.parse(text);
-                    } else {
-                        contentDiv.textContent = text;
-                    }
-                } catch (e) {
-                    contentDiv.textContent = text;
-                }
-            } else {
-                contentDiv.textContent = text;
-            }
+            messageDiv.appendChild(contentDiv);
+            chatBox.appendChild(messageDiv);
             
-            msgDiv.appendChild(contentDiv);
-            chatBox.appendChild(msgDiv);
-            chatBox.scrollTop = chatBox.scrollHeight;
-            return msgDiv;
-        }
-
-        function showTypingIndicator() {
-            if (welcomeBanner) welcomeBanner.style.display = 'none';
-            
-            const indicatorDiv = document.createElement('div');
-            indicatorDiv.classList.add('message', 'assistant');
-            indicatorDiv.id = 'typingIndicator';
-            indicatorDiv.innerHTML = `
-                <div class="message-content">
-                    <div class="typing-indicator">
-                        <div class="typing-dot"></div>
-                        <div class="typing-dot"></div>
-                        <div class="typing-dot"></div>
-                    </div>
-                </div>
-            `;
-            chatBox.appendChild(indicatorDiv);
             chatBox.scrollTop = chatBox.scrollHeight;
         }
 
-        function removeTypingIndicator() {
-            const indicator = document.getElementById('typingIndicator');
-            if (indicator) indicator.remove();
-        }
-
-        async function handleQuery(question) {
-            if (!question.trim()) return;
+        queryForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            const question = questionInput.value.trim();
+            if (!question) return;
 
             appendMessage('user', question);
-            userInput.value = '';
+            questionInput.value = '';
             
-            userInput.disabled = true;
+            loadingIndicator.style.display = 'flex';
+            questionInput.disabled = true;
             sendBtn.disabled = true;
-            showTypingIndicator();
+            chatBox.scrollTop = chatBox.scrollHeight;
 
             try {
                 const response = await fetch('/query', {
                     method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ question: question }),
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ question: question })
                 });
 
-                removeTypingIndicator();
+                const data = await response.json();
 
                 if (!response.ok) {
-                    const errorData = await response.json();
-                    appendMessage('assistant', `⚠️ Error: ${errorData.detail || 'Something went wrong.'}`);
-                } else {
-                    const data = await response.json();
-                    appendMessage('assistant', data.answer);
+                    throw new Error(data.detail || 'Something went wrong');
                 }
+
+                appendMessage('bot', data.answer);
             } catch (error) {
-                removeTypingIndicator();
-                appendMessage('assistant', "⚠️ Network Error: Unable to reach the server.");
+                appendMessage('bot', `Error: ${error.message}`);
             } finally {
-                userInput.disabled = false;
+                loadingIndicator.style.display = 'none';
+                questionInput.disabled = false;
                 sendBtn.disabled = false;
-                userInput.focus();
+                // Use a slight timeout for focus to prevent keyboard jumping on mobile
+                setTimeout(() => questionInput.focus(), 100);
             }
-        }
-
-        function sendPreset(question) {
-            handleQuery(question);
-        }
-
-        function clearChat() {
-            const messages = chatBox.querySelectorAll('.message');
-            messages.forEach(msg => msg.remove());
-            if (welcomeBanner) {
-                welcomeBanner.style.display = 'block';
-            }
-            userInput.focus();
-        }
-
-        chatForm.addEventListener('submit', async (e) => {
-            e.preventDefault();
-            await handleQuery(userInput.value);
         });
     </script>
 </body>
