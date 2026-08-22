@@ -22,7 +22,7 @@ def get_rag_chain(retriever):
     
     # 2. Initialize the LLM using ChatGroq
     llm = ChatGroq(
-        model_name="llama-3.3-70b-versatile"
+        model_name="groq/compound-mini"
     )
     
     # 3. Define the Prompt Template
