@@ -20,7 +20,7 @@ def get_rag_chain(retriever):
     os.environ['GROQ_API_KEY'] = os.getenv("GROQ_API_KEY")
     
     llm = ChatGroq(
-        model_name="groq/compound-mini"
+        model_name="qwen/qwen3.8-27b"
     )
     
     template = """You are an expert assistant for answering questions based on textbook material.
